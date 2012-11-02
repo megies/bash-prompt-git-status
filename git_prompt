@@ -37,7 +37,7 @@ git_prompt() {
 
     local_changes() {
         local added='# Changes to be committed'
-        local not_added='# Changes not staged for commit'
+        local not_added='# Changed but not updated'
         match_against_status "($added|$not_added)"
     }
 
