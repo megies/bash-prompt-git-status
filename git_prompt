@@ -6,6 +6,15 @@ git_prompt() {
         sed -n 's/# On branch //p' <<< "$git_status_output"
     }
 
+    short_branch_name() {
+        name=$(branch_name)
+        if [[ `expr length $name` -gt 8 ]]
+        then
+            name="${name:0:6}.."
+        fi
+        echo -e "$name"
+    }
+
     number_of_commits() {
         local branch_prefix='# Your branch is '
         local branch_suffix='by [[:digit:]]+'
@@ -36,31 +45,12 @@ git_prompt() {
         match_against_status '# Untracked files'
     }
 
-    dashline() {
-        eval printf '%.0s-' {1..$1}
-    }
-
-    local bold="\033[1m"
+    local red="\033[31m"
+    local green="\033[32m"
+    local yellow="\033[33m"
     local no_colour="\033[0m"
 
-    ahead_arrow() {
-        if commits_ahead=$(number_of_commits "ahead")
-        then
-            echo -e "$bold$(dashline $commits_ahead)$no_colour> $commits_ahead ahead"
-        fi
-    }
-
-    behind_arrow() {
-        if commits_behind=$(number_of_commits "behind")
-        then
-            echo "$commits_behind behind <$bold$(dashline $commits_behind)$no_colour"
-        fi
-    }
-
     branch_part() {
-        local red="\033[31m"
-        local green="\033[32m"
-        local yellow="\033[33m"
         local branch_colour=""
 
         if untracked_files
@@ -73,20 +63,27 @@ git_prompt() {
         then
             branch_colour=$green
         fi
-        echo "$branch_colour$(branch_name)$no_colour"
+        echo "$branch_colour$(short_branch_name)$no_colour"
     }
 
-    local behind_part=$(behind_arrow)
-    local ahead_part=$(ahead_arrow)
+    local behind=$(number_of_commits "behind")
+    local ahead=$(number_of_commits "ahead")
 
-    if [[ ! "$behind_part" && ! "$ahead_part" ]]
+    prompt="($(branch_part)"
+    if [[ "$ahead" == "0" && "$behind" == "0" ]]
     then
-        prompt="$(branch_part)"
+        prompt=$prompt')'
     else
-        prompt="$behind_part|$ahead_part\n$(branch_part)"
+        if [[ ! "$behind" == "0" ]]
+        then
+            prompt=$prompt"<$red$behind$no_colour"
+        fi
+        if [[ ! "$ahead" == "0" ]]
+        then
+            prompt=$prompt">$green$ahead$no_colour"
+        fi
+        prompt=$prompt')'
     fi
 
-    echo -e "$prompt "
+    echo -e "$prompt"
 }
-
-export PS1="\$(git_prompt)"$PS1
