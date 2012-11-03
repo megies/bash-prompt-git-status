@@ -8,9 +8,9 @@ git_prompt() {
 
     short_branch_name() {
         name=$(branch_name)
-        if [[ `expr length $name` -gt 8 ]]
+        if [[ `expr length $name` -gt 11 ]]
         then
-            name="${name:0:6}.."
+            name="${name:0:5}..${name: -3}"
         fi
         echo -e "$name"
     }
