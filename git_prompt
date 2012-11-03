@@ -3,7 +3,7 @@ git_prompt() {
     git_status_output=$(git status 2> /dev/null) || return
 
     branch_name() {
-        sed -n 's/# On branch //p' <<< "$git_status_output"
+        echo "$git_status_output" | sed -n -e 's/# On branch //p' -e 's/# Not currently on any branch./DETACHED/p'
     }
 
     short_branch_name() {
