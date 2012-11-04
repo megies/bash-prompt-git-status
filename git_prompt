@@ -1,89 +1,79 @@
 #!/bin/bash
 git_prompt() {
-    git_status_output=$(git status 2> /dev/null) || return
+    GIT_BRANCH_FONT=`echo -e "\e[0m"`
+    GIT_BRANCH=""
+    GIT_AHEAD_FONT=`echo -e "\e[0m"`
+    GIT_AHEAD=""
+    GIT_BEHIND_FONT=`echo -e "\e[0m"`
+    GIT_BEHIND=""
+    #plain=""
 
-    branch_name() {
-        echo "$git_status_output" | sed -n -e 's/# On branch //p' -e 's/# Not currently on any branch./DETACHED/p'
-    }
+    git_status_output=$(git status -s 2> /dev/null) || return 1
+    git_branch_output=$(git branch -vv 2> /dev/null | grep -e '^\*') || return 1
 
-    short_branch_name() {
-        name=$(branch_name)
-        if [[ `expr length $name` -gt 11 ]]
-        then
-            name="${name:0:5}..${name: -3}"
-        fi
-        echo -e "$name"
-    }
-
-    number_of_commits() {
-        local branch_prefix='# Your branch is '
-        local branch_suffix='by [[:digit:]]+'
-        if [[ "$git_status_output" =~ ${branch_prefix}"$1".*${branch_suffix} ]]
-        then
-            echo ${BASH_REMATCH[0]//[^0-9]/}
-        else
-            echo 0 && return 1
-        fi
-    }
-
-    match_against_status() {
-        local pattern="$1"
-        [[ "$git_status_output" =~ ${pattern} ]]
-    }
-
-    working_dir_clean() {
-        match_against_status '(working directory clean)'
-    }
-
-    local_changes() {
-        local added='# Changes to be committed'
-        local not_added='# Changed but not updated'
-        match_against_status "($added|$not_added)"
-    }
-
-    untracked_files() {
-        match_against_status '# Untracked files'
-    }
-
-    local red="\033[31m"
-    local green="\033[32m"
-    local yellow="\033[33m"
-    local no_colour="\033[0m"
-
-    branch_part() {
-        local branch_colour=""
-
-        if untracked_files
-        then
-            branch_colour=$red
-        elif local_changes
-        then
-            branch_colour=$yellow
-        elif working_dir_clean
-        then
-            branch_colour=$green
-        fi
-        echo "$branch_colour$(short_branch_name)$no_colour"
-    }
-
-    local behind=$(number_of_commits "behind")
-    local ahead=$(number_of_commits "ahead")
-
-    prompt="($(branch_part)"
-    if [[ "$ahead" == "0" && "$behind" == "0" ]]
+    GIT_BRANCH='↳'`echo "$git_branch_output" | awk '{print $2}' | sed 's#(no#DETACHED#'`
+    if [[ `expr length $GIT_BRANCH` -gt 11 ]]
     then
-        prompt=$prompt')'
-    else
-        if [[ ! "$behind" == "0" ]]
-        then
-            prompt=$prompt"<$red$behind$no_colour"
-        fi
-        if [[ ! "$ahead" == "0" ]]
-        then
-            prompt=$prompt">$green$ahead$no_colour"
-        fi
-        prompt=$prompt')'
+        GIT_BRANCH="${GIT_BRANCH:0:5}..${GIT_BRANCH: -3}"
     fi
 
-    echo -e "$prompt"
+    local tracking=""
+    GIT_AHEAD=""
+    GIT_BEHIND=""
+    if [[ "$git_branch_output" =~ .*\[(.*/[^:]*)[]:].* ]]
+    then
+        tracking="${BASH_REMATCH[1]}"
+        if [[ "$git_branch_output" =~ .*\ \[.*/.*:.*\ ahead\ ([0-9]*).*\].* ]]
+        then
+            GIT_AHEAD="+${BASH_REMATCH[1]}"
+        fi
+        if [[ "$git_branch_output" =~ .*\ \[.*/.*:.*\ behind\ ([0-9]*).*\].* ]]
+        then
+            GIT_BEHIND="-${BASH_REMATCH[1]}"
+        fi
+    fi
+
+    local staged=`echo "$git_status_output" | grep -e "^[MARC]  .*" | wc -l`
+    local changed=`echo "$git_status_output" | grep -e "^ [MD] .*" | wc -l`
+    local untracked=`echo "$git_status_output" | grep -e "^?? .*" | wc -l`
+
+    local red='\e[31m'
+    local green='\e[32m'
+    local yellow='\e[33m'
+    local orange='\e[38;5;202m'
+    local plain='\e[0m'
+    local bold='\e[1m'
+    local dim='\e[2m'
+    local underline='\e[4m'
+    local invert='\e[7m'
+
+    GIT_BRANCH_FONT=$plain$green
+    if [[ $staged -gt 0 && $changed -gt 0 ]]
+    then
+            GIT_BRANCH_FONT=$plain$orange
+    else
+        if [[ $staged -gt 0 ]]
+        then
+            GIT_BRANCH_FONT=$plain$yellow
+        fi
+        if [[ $changed -gt 0 ]]
+        then
+            GIT_BRANCH_FONT=$plain$red
+        fi
+    fi
+    if [[ $tracking == "" ]]
+    then
+        GIT_BRANCH_FONT=${GIT_BRANCH_FONT}$invert$bold
+    fi
+    if [[ $untracked -gt 0 ]]
+    then
+        GIT_BRANCH_FONT=${GIT_BRANCH_FONT}$underline
+    fi
+    GIT_AHEAD_FONT=$bold$invert$green
+    GIT_BEHIND_FONT=$bold$invert$red
+
+    GIT_BRANCH_FONT=`echo -e "$GIT_BRANCH_FONT"`
+    GIT_AHEAD_FONT=`echo -e "$GIT_AHEAD_FONT"`
+    GIT_BEHIND_FONT=`echo -e "$GIT_BEHIND_FONT"`
+    #plain=`echo -e "$plain"`
 }
