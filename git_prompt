@@ -6,11 +6,15 @@ git_prompt() {
     GIT_AHEAD=""
     GIT_BEHIND_FONT=`echo -e "\e[0m"`
     GIT_BEHIND=""
+    GIT_START=""
+    GIT_END=""
     #plain=""
 
     git_status_output=$(git status -s 2> /dev/null) || return 1
     git_branch_output=$(git branch -vv 2> /dev/null | grep -e '^\*') || return 1
 
+    GIT_START="❮"
+    GIT_END="❯"
     GIT_BRANCH='↳'`echo "$git_branch_output" | awk '{print $2}' | sed 's#(no#DETACHED#'`
     if [[ `expr length $GIT_BRANCH` -gt 11 ]]
     then
