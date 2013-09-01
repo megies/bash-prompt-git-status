@@ -37,7 +37,7 @@ git_prompt() {
         fi
     fi
 
-    local staged=`echo "$git_status_output" | grep -e "^[MARCD]. .*" | wc -l`
+    local staged=`echo "$git_status_output" | grep -e "^[MARCDT]. .*" | wc -l`
     local changed=`echo "$git_status_output" | grep -e "^.[MD] .*" | wc -l`
     local untracked=`echo "$git_status_output" | grep -e "^?? .*" | wc -l`
 
